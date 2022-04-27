@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Input, AutoComplete, InputNumber, Button, notification, Progress } from 'antd';
-import { getTokens } from "../utils";
+import { getNFTContractHolders, getTokens, initMoralis } from "../utils";
 import styled from 'styled-components';
 import Wallet from '../pages/components/Wallet';
 import { GithubOutlined, SendOutlined } from '@ant-design/icons';
@@ -29,6 +29,8 @@ function BasicLayout(props) {
   const [tokensInfo, setTokensInfo] = useState();
   const [inputText, setInputText] = useState('');
   const [receivers, setReceivers] = useState([]);
+  const [ogsholders, setOgsHolders] = useState([]);
+  const [holders, setHolders] = useState([]);
   const [amounts, setAmounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState();
@@ -47,13 +49,11 @@ function BasicLayout(props) {
       if (!ret || ret.length === 0) {
         return;
       }
-      console.log("ret: ", ret)
-
       if (
         isAddress(tokenAddress) &&
         !tokens[isNFT.toString()][1].includes(tokenAddress)
       ) {
-        console.log('set balance', commafy((new BigNumber(ret[tokenAddress].balance)).div(10 ** ret[tokenAddress].decimals)));
+        // console.log('set balance', commafy((new BigNumber(ret[tokenAddress].balance)).div(10 ** ret[tokenAddress].decimals)));
         setBalance(
           commafy(new BigNumber(ret[tokenAddress].balance).div(10 ** ret[tokenAddress].decimals)),
         );
@@ -65,7 +65,7 @@ function BasicLayout(props) {
 
       if (isAddress(e)) {
         let tokensInfo = ret;
-        console.log('tokensInfo: ', tokensInfo[e]);
+        // console.log('tokensInfo: ', tokensInfo[e]);
         if (tokensInfo && tokensInfo[e]) {
           if (e === NATIVE_TOKEN_ADDRESS) {
             setBalance(commafy(new BigNumber(tokensInfo[e].balance).div(1e18)));
@@ -85,7 +85,6 @@ function BasicLayout(props) {
       setTokensInfo(ret);
 
       let options = tokens[isNFT.toString()][1].map((v) => {
-        console.log("option address: ", v)
         if (v === NATIVE_TOKEN_ADDRESS) {
           return {
             label:
@@ -108,8 +107,6 @@ function BasicLayout(props) {
           };
         }
       });
-      console.log(options)
-
       setTokenOptions(options);
     };
     func();
@@ -128,13 +125,47 @@ function BasicLayout(props) {
       setTokenOptions([]);
       setTokens();
       if (wallet.address) {
-        const result = await getTokens(wallet.networkId, wallet.address);
-        console.log("getTokens: ", result)
-        setTokens(result);      
+        initMoralis();
+        const nfts = await getTokens(wallet.networkId, wallet.address);
+        console.log("getTokens: ", nfts)
+        setTokens(nfts);
       }      
     };
     func();
   }, [wallet]);
+
+  // get NUKE holders
+  useEffect(() => {
+    const func = async () => {
+      initMoralis();
+      const NukeHolders = await getNFTContractHolders("1", "0x78Eaf151Fa52Dce1c5A9dAbdd3E4dF0E98503306")
+      setOgsHolders(NukeHolders.ogs);
+      setHolders(NukeHolders.others);
+    };
+    func();
+  }, []);
+
+  useEffect(() => {
+    const func = async () => {
+      if (ogsholders.length > 0 && holders.length > 0) {
+        console.log("NukeHolders: ", ogsholders.length + holders.length);
+        let textarea = "";
+        for (const ogs of ogsholders) {
+          textarea += ogs + ",1\n";
+          textarea += ogs + ",2\n";
+          textarea += ogs + ",3\n";
+          textarea += ogs + ",4\n";
+          textarea += ogs + ",0\n";
+        }
+        for (const holder of holders) {
+          textarea += holder + "," + Math.floor(Math.random() * 5) +"\n";        
+        }
+        console.log(textarea)
+        setInputText(textarea);
+      }
+    };
+    func();
+  }, [ogsholders, holders]);
 
   useEffect(() => {
     let lines = inputText.split('\n');
@@ -257,23 +288,7 @@ function BasicLayout(props) {
           Decimals:
           <span>{' ' + decimals}</span>
         </DecimalBox>
-        <Text>Input or upload recipient addresses in CSV format:</Text>
-        <FileSelecton
-          type="file"
-          id="input"
-          style={{ marginLeft: '10px' }}
-          buttonStyle={{
-            background: '#404040b3',
-            color: 'white',
-          }}
-          onChange={(e) => {
-            let value = e.target.value;
-            let files = e.target.files;
-            setTimeout(() => {
-              onUploadCheck(value, files);
-            }, 1000);
-          }}
-        />
+        
         <STextArea
           rows={12}
           placeholder={`

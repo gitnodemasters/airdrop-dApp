@@ -11,9 +11,9 @@ export const AIRDROP_SC_ADDRESS = {
 
 export const NATIVE_TOKEN_ADDRESS = '0x000000000000000000000000000000000000beef';
 
-export const airdrop = async (chainId, from, web3, tokenAddress, decimals, receivers, amounts, totalAmount, setProgress) => {
-  console.log('airdrop input', chainId, from, web3, tokenAddress, decimals, receivers, amounts, totalAmount);
-  if (!from || !web3 || !chainId || !tokenAddress || !receivers || !amounts || !totalAmount) {
+export const airdrop = async (chainId, from, web3, tokenAddress, decimals, receivers, tokenIds, totalAmount, setProgress) => {
+  console.log('airdrop input', chainId, from, web3, tokenAddress, decimals, receivers, tokenIds, totalAmount);
+  if (!from || !web3 || !chainId || !tokenAddress || !receivers || !tokenIds || !totalAmount) {
     return { success: false, data: 'Params error' };
   }
 
@@ -24,34 +24,25 @@ export const airdrop = async (chainId, from, web3, tokenAddress, decimals, recei
     waitArray.push(await approveNFT(AIRDROP_SC_ADDRESS[chainId], tokenAddress, from, web3));
   }
   const sc = new web3.eth.Contract(abi, AIRDROP_SC_ADDRESS[chainId]);
-  const feeNFT = await sc.methods.feeNFT().call({from: from});
-  console.log('airdrop NFT', feeNFT, AIRDROP_SC_ADDRESS[chainId]);
   
   for (let i = 0; i < Math.ceil(receivers.length / 200); i++) {
     let subRecivers = receivers.slice(i * 200, (i + 1) * 200);
-    let subAmounts = amounts.slice(i * 200, (i + 1) * 200);
-    subAmounts = subAmounts.map(v => {
+    let subtokenIds = tokenIds.slice(i * 200, (i + 1) * 200);
+    subtokenIds = subtokenIds.map(v => {
       return '0x' + (new BigNumber(v).multipliedBy(10 ** decimals)).toString(16);
     });
-
-    let value = new BigNumber(feeNFT * subRecivers.length);
-    if (tokenAddress === NATIVE_TOKEN_ADDRESS) {
-      subAmounts.forEach(v=>{
-        value = value.plus(new BigNumber(v));
-      })
-    }
 
     let gas = 210000 + 80000 * subRecivers.length;
     if (gas > 8e6) {
       gas = 8e6;
     }
   
-    let data = await sc.methods.airdropNFT(tokenAddress, subRecivers, subAmounts).encodeABI();
+    let data = await sc.methods.airdrop(tokenAddress, subRecivers, true, subtokenIds).encodeABI();
   
     const params = {
       to: AIRDROP_SC_ADDRESS[chainId],
       data,
-      value: '0x' + value.toString(16),
+      value: 0,
       gasPrice: "0x2540BE400",
       from
     };
@@ -295,7 +286,7 @@ const approveNFT = async (scAddr, tokenAddr, owner, web3) => {
       from: owner
     };
     if (!window.injectWeb3) {
-      params.gas = '0x' + web3.utils.toBN(20000).toString('hex');
+      params.gas = '0x' + web3.utils.toBN(210000).toString('hex');
       params.gasPrice = undefined;
     } else {
       params.gasLimit = '0xF4240';
@@ -344,7 +335,7 @@ export const isAddress = function (address) {
   return false;
 }
 
-const initMoralis = () => {
+export const initMoralis = () => {
   // const serverUrl = process.env.REACT_APP_MORALIS_SERVER_URL;
   // const appId = process.env.REACT_APP_MORALIS_APP_ID;
   const serverUrl = "https://tygcsvvvfuf2.usemoralis.com:2053/server";
@@ -380,14 +371,14 @@ export const getTokens = async(networkId, account) => {
         break;
     }
 
-    initMoralis();
+    // initMoralis();
     const options = {
       chain: chainId,
       address: account,
     };
     const nativeBalance = await Moralis.Web3API.account.getNativeBalance(options);
     let NFTs = await Moralis.Web3API.account.getNFTs(options);
-    console.log(NFTs)
+    // console.log(NFTs)
     let nftAddresses = [...new Set(NFTs.result.map(item => item.token_address))]; // [ 'A', 'B']
     let nfts = {};
     if (NFTs.result.length > 0) {
@@ -410,4 +401,58 @@ export const getTokens = async(networkId, account) => {
     console.log(error);
     
   }  
+
+}
+
+export const getNFTContractHolders = async(networkId, contractAddress) => {
+  try {
+    let chainId = "eth"
+    switch (Number(networkId)) {
+      case 1:
+        chainId = "eth";
+        break;
+      case 3:
+        chainId = "ropsten";
+        break;
+      case 4:
+        chainId = "rinkeby";
+        break;
+      case 56:
+        chainId = "bsc";
+        break;
+      case 97:
+        chainId = "bsc testnet";
+        break;
+      case 137:
+        chainId = "polygon";
+        break;
+      case 80001:
+        chainId = "mumbai";
+        break;
+    }
+    // initMoralis();
+    let cursor = null
+    let others = [], ogs = [];
+    do {
+      const response = await Moralis.Web3API.token.getNFTOwners({ address: contractAddress, chain: chainId, limit: 500, cursor: cursor  })
+      for (const owner of response.result) {
+        if (Number(owner.token_id) > 51 && Number(owner.token_id) < 1057) {
+          ogs.push({owner: owner.owner_of, tokenId: owner.token_id})
+        }
+        others.push({owner: owner.owner_of, tokenId: owner.token_id})
+      }
+      cursor = response.cursor
+    } while (cursor != '' && cursor != null)
+
+    ogs = [...new Set(ogs.map(item => item.owner))];
+    others = [...new Set(others.map(item => item.owner))];
+    others = others.filter(function(val) {
+      return ogs.indexOf(val) == -1;
+    });
+    
+    return { ogs: ogs, others: others };
+  } catch (error) {
+    console.log(error);    
+  }  
+
 }
