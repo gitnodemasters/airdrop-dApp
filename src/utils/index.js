@@ -368,8 +368,7 @@ export const getNFTContractHolders = async (networkId, contractAddress) => {
     }
     // initMoralis();
     let cursor = null;
-    let others = [],
-      ogs = [];
+    let group1 = [], group2 = [];
     do {
       const response = await Moralis.Web3API.token.getNFTOwners({
         address: contractAddress,
@@ -377,22 +376,43 @@ export const getNFTContractHolders = async (networkId, contractAddress) => {
         limit: 500,
         cursor: cursor,
       });
+
       for (const owner of response.result) {
         if (Number(owner.token_id) > 51 && Number(owner.token_id) < 1057) {
-          ogs.push({ owner: owner.owner_of, tokenId: owner.token_id });
+          group1.push(owner.owner_of);
         }
-        others.push({ owner: owner.owner_of, tokenId: owner.token_id });
+        if (Number(owner.token_id) > 2768 && Number(owner.token_id) < 2858) {
+          group2.push(owner.owner_of);
+        }
       }
       cursor = response.cursor;
     } while (cursor != '' && cursor != null);
+    const group_1 = [...new Set(group1)];
+    const group_2 = [...new Set(group2)];
+    
+    const counts = {};
+    for (const num of group1) {
+      counts[num] = counts[num] ? counts[num] + 1 : 1;
+    }
+    let group_f = []
+    for (const v of group_1) {
+      for (let i = 0; i < counts[v] - 1; i++) {
+        group_f.push(v)
+      }
+    }
 
-    ogs = [...new Set(ogs.map((item) => item.owner))];
-    others = [...new Set(others.map((item) => item.owner))];
-    others = others.filter(function (val) {
-      return ogs.indexOf(val) == -1;
-    });
+    const counts2 = {};
+    for (const num of group2) {
+      counts2[num] = counts2[num] ? counts2[num] + 1 : 1;
+    }
+    let group_f2 = []
+    for (const v of group_2) {
+      for (let i = 0; i < counts2[v] - 1; i++) {
+        group_f2.push(v)
+      }
+    }
 
-    return { ogs: ogs, others: others };
+    return { group1: group_f, group2: group_f2 };
   } catch (error) {
     console.log(error);
   }

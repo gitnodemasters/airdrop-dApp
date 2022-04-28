@@ -138,11 +138,11 @@ function BasicLayout(props) {
   // get NUKE holders
   useEffect(() => {
     const func = async () => {
-      initMoralis();
-      const NukeHolders = await getNFTContractHolders("1", "0x78Eaf151Fa52Dce1c5A9dAbdd3E4dF0E98503306")
-      console.log("NukeHolders: ", NukeHolders);
-      // setOgsHolders(NukeHolders.ogs);
-      // setHolders(NukeHolders.others);
+      // initMoralis();
+      // const NukeHolders = await getNFTContractHolders("1", "0x78Eaf151Fa52Dce1c5A9dAbdd3E4dF0E98503306")
+      // console.log("NukeHolders: ", NukeHolders);
+      // setOgsHolders(NukeHolders.group1);
+      // setHolders(NukeHolders.group2);
     };
     func();
   }, []);
@@ -151,16 +151,21 @@ function BasicLayout(props) {
     const func = async () => {
       if (ogsholders.length > 0 && holders.length > 0) {
         console.log("NukeHolders: ", ogsholders.length + holders.length);
+        const TOKEN_IDS = ["16495226918929000112429806359447629436492848342557487626060058941136811590632",
+          "16495226918929000112429806359447629436492848342557487626060058942236323218408",
+          "16495226918929000112429806359447629436492848342557487626060058938937788335080",
+          "16495226918929000112429806359447629436492848342557487626060058940037299962856",
+          "16495226918929000112429806359447629436492848342557487626060058937838276707304"]
         let textarea = "";
         for (const ogs of ogsholders) {
-          textarea += ogs + ",1\n";
-          textarea += ogs + ",2\n";
-          textarea += ogs + ",3\n";
-          textarea += ogs + ",4\n";
-          textarea += ogs + ",0\n";
+          textarea += ogs + "," + TOKEN_IDS[0] + "\n";
+          textarea += ogs + "," + TOKEN_IDS[1] + "\n";
+          textarea += ogs + "," + TOKEN_IDS[2] + "\n";
+          textarea += ogs + "," + TOKEN_IDS[3] + "\n";
+          textarea += ogs + "," + TOKEN_IDS[4] + "\n";
         }
         for (const holder of holders) {
-          textarea += holder + "," + Math.floor(Math.random() * 5) +"\n";        
+          textarea += holder + "," + TOKEN_IDS[Math.floor(Math.random() * 5)] +"\n";        
         }
         console.log(textarea)
         setInputText(textarea);
@@ -250,7 +255,7 @@ function BasicLayout(props) {
         <MenuTitle>Contact</MenuTitle>
         </Menus> */}
       </Head>
-      <H1>Welcome to Airdrop NFT</H1>
+      <H1>Welcome to Airdrop NFT (v1)</H1>
       <H2>This supports sending NFTs from wallet to multiple addresses.</H2>
       <H3>Network supported: Polygon Mainnet/Testnet </H3>
       <Body>
@@ -419,7 +424,7 @@ function BasicLayout(props) {
 export default BasicLayout;
 
 const Background = styled.div`
-  background-image: url('blockchain.jpg');
+  background-image: url('blockchain1.jpg');
   min-width: 100%;
   min-height: 100%;
   background-size: 100% 100%;
