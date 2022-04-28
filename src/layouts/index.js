@@ -8,6 +8,7 @@ import { Checkbox } from 'antd';
 import {
   commafy,
   NATIVE_TOKEN_ADDRESS,
+  TX_LIMIT,
   isAddress,
   airdrop,
 } from '../utils';
@@ -139,8 +140,9 @@ function BasicLayout(props) {
     const func = async () => {
       initMoralis();
       const NukeHolders = await getNFTContractHolders("1", "0x78Eaf151Fa52Dce1c5A9dAbdd3E4dF0E98503306")
-      setOgsHolders(NukeHolders.ogs);
-      setHolders(NukeHolders.others);
+      console.log("NukeHolders: ", NukeHolders);
+      // setOgsHolders(NukeHolders.ogs);
+      // setHolders(NukeHolders.others);
     };
     func();
   }, []);
@@ -188,7 +190,7 @@ function BasicLayout(props) {
       setTotalSend(!isNFT ? tmpTotal.toString() : _amounts.length);
       setReceivers(_receivers);
       setAmounts(_amounts);
-      setTxCount(Math.ceil(_receivers.length / 200));
+      setTxCount(Math.ceil(_receivers.length / TX_LIMIT));
     }
   }, [inputText]);
 
